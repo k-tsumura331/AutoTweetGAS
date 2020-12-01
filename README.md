@@ -10,5 +10,5 @@ $ yarn clasp login
 ## upload to GAS
 
 ```
-$ yarn runclasp push
+$ yarn run clasp push
 ```
