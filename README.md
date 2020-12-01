@@ -1,9 +1,10 @@
 # AutoTweetGAS
 
-
 ## setup
-clasp login
+
+$ yarn
+$ yarn clasp login
 
 ## upload to GAS
-clasp push
 
+$ yarn runclasp push
