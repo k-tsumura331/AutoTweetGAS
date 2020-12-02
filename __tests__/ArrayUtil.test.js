@@ -2,7 +2,7 @@ const ArrayUtil = require("../src/ArrayUtil");
 
 describe("ArrayUtil", () => {
   describe("Func: arrayToObject", () => {
-    test("check Array", () => {
+    test("to Array", () => {
       srcArray = ["aaa", "bbb", "ccc"];
       rowArray = ["row1", "row2", "row3"];
 
