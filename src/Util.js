@@ -1,3 +1,26 @@
+// 配列を連想配列に変換
+function arrayToObject(itemArray, rowArray) {
+  let obj = {};
+  for (let i = 0; i < itemArray.length; i++) {
+    obj[rowArray[i]] = itemArray[i];
+  }
+  return obj;
+}
+
+// 配列の内容をキーに添字をvaluesに配置
+function arrayToSearchObject(headArray) {
+  let obj = new Object();
+  for (let i in headArray) {
+    obj[headArray[i]] = Number(i) + 1;
+  }
+  return obj;
+}
+
+// 連想配列を配列に変換
+function objectToArray(object) {
+  return Object.keys(object).map((key) => object[key]);
+}
+
 // 二次元配列を連想配列に変換
 function convertRowToObject(values) {
   // get keys
@@ -25,11 +48,11 @@ function lenb(str) {
       }
       i++;
     }
-  }
-  if (len == 0) {
-    return "";
-  } else {
-    return len;
+    if (len == 0) {
+      return "";
+    } else {
+      return len;
+    }
   }
 }
 
@@ -58,4 +81,16 @@ function toSlack(msg) {
   };
 
   UrlFetchApp.fetch(webHook, params);
+}
+
+// プロパティから数値を取得（定義されていなければ0）
+function getpropertyToNumber(key) {
+  const str = PropertiesService.getScriptProperties().getProperty(key);
+  return str != null ? parseInt(str) : 0;
+}
+
+// プロパティから文字列を取得（定義されていなければ0）
+function getpropertyToString(key) {
+  const str = PropertiesService.getScriptProperties().getProperty(key);
+  return str != null ? str : "";
 }
