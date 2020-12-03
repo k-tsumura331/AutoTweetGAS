@@ -9,18 +9,20 @@ function autoTweet() {
 
 // 起動時間の制御
 function timeFilter() {
-  const FROM_TIME = PropertiesService.getScriptProperties().getProperty(
-    "TWEET_TIME_FROM"
-  );
-  const TO_TIME = PropertiesService.getScriptProperties().getProperty(
-    "TWEET_TIME_TO"
-  );
-  const now_hour = new Date().getHours();
-  console.log(`from : ${FROM_TIME}`);
-  console.log(`to: ${TO_TIME}`);
-  console.log(`now: ${now_hour}`);
-  console.log(`check: ${now_hour >= FROM_TIME && now_hour < TO_TIME}`);
-  return now_hour >= FROM_TIME && now_hour < TO_TIME;
+  const TIME_SHEET_NAME = "time_schedule";
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getSheetByName(TIME_SHEET_NAME);
+  const values = sheet.getRange(2, 1, 96, 2).getDisplayValues();
+  
+
+  // 配列の内容をキーに添字をvaluesに配置
+  let timeObject = {};
+  for(let item of values){
+     timeObject[item[0]] = item[1];
+  }  
+  const now = new Date();
+  const hantei = now.getHours() + ':' + Math.trunc(now.getMinutes() / 15) * 15;
+  return (timeObject[hantei] == 'TRUE');
 }
 
 function tweetFromSpreadSheet() {
@@ -34,12 +36,13 @@ function tweetFromSpreadSheet() {
   // 先頭の見出し3行を削除
   const obj = getTweetRow(values.slice(3), headArray);
   const id = obj["id"];
-  const tweet_text = obj["tweet_text"];
+  const tweet_text = obj["tweet_text"] + obj['retweet_url'];
   const next_tweet_time = obj["next_tweet_time"];
   const now = new Date();
   const imageUrls = get_imageUrls(obj);
 
   // 前回投稿時から間隔が短ければ投稿処理を見送る
+  console.log(`now: ${now} next: ${next_tweet_time}`)
   if (now <= next_tweet_time) {
     console.log(
       `投稿優先度の一番高い行(投稿ID:${id})の次回投稿予定時刻に満たないため、投稿処理を見送りました。`
@@ -65,6 +68,9 @@ function tweetFromSpreadSheet() {
   const twit = new OAuthMI(scriptProps);
 
   try {
+    // 全文一致するツイートを削除
+    deleteSameTweet(tweet_text);
+    
     // ツイート
     if (imageUrls.length) {
       // 画像がある場合
@@ -122,16 +128,15 @@ function getTweetRow(values, headArray) {
     if (a["id"] > b["id"]) return 1;
     return 0;
   });
-  // console.log(`ソート後の全行: ${values2}`);
-  console.log(`投稿優先度が一番高い行: ${sortedObjects[0]}`);
-  // 一番優先度の高い行を返す
+//  console.log(`投稿優先度が1番高い行: ${objectToArray(sortedObjects[0])}`);
+
+// 一番優先度の高い行を返す
   return sortedObjects[0];
 }
 
 // シートに対して更新を行う
 function sheetUpdate(sheet, id, message = "", retry = false, error = false) {
   const now = new Date();
-  console.log(columnObject);
   const last_tweet_time = columnObject["last_tweet_time"];
   const result = columnObject["result"];
 
