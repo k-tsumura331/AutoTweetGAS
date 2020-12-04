@@ -40,21 +40,6 @@ function authCallback(request) {
   }
 }
 
-// ツイート実行
-function toTweet(msg, media = {}) {
-  var twitterService = getService();
-
-  if (twitterService.hasAccess()) {
-    var twMethod = { method: "POST" };
-    twMethod.payload = Object.assign({ status: msg }, media);
-    const response = twitterService.fetch(
-      "https://api.twitter.com/1.1/statuses/update.json",
-      twMethod
-    );
-  } else {
-    console.log(service.getLastError());
-  }
-}
 
 // ツイートリストを取得する
 function getTweetJsons(maxid = 0) {
