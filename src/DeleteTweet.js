@@ -1,13 +1,3 @@
-function test(){
-   const tweetJsons = twitterInstances['honban'].getTweetJsons('1334735147820838917'); 
-  console.log(`tweetJsons: ${JSON.stringify(tweetJsons[0])}`)
-  const lastTweetJson = tweetJsons.slice(-1)[0];
-  console.log(`lastTweetJsons: ${JSON.stringify(lastTweetJson)}`)
-  //1334737710485999616
-  //1323430793855688705
-}
-
-
 // 検索ボタン
 function searchButtonFunc() {
   const DELETE_SHEET_NAME = "search_and_delete";

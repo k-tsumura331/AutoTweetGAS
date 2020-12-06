@@ -2,23 +2,14 @@
 
 
 function delmuda(){
- const scriptProp = PropertiesService.getScriptProperties();
- let consumer_key =  scriptProp.getProperty("CONSUMER_KEY")
- let consumer_sercret = scriptProp.getProperty("CONSUMER_SECRET");
+  const scriptProp = PropertiesService.getScriptProperties();
+  let consumer_key =  scriptProp.getProperty("CONSUMER_KEY")
+  let consumer_sercret = scriptProp.getProperty("CONSUMER_SECRET");
   let webhook = scriptProp.getProperty("WEBHOOK_URL");
- scriptProp.deleteAllProperties(); 
+  scriptProp.deleteAllProperties(); 
   scriptProp.setProperty("CONSUMER_KEY", consumer_key);
   scriptProp.setProperty("CONSUMER_SECRET", consumer_sercret);
   scriptProp.setProperty("WEBHOOK_URL", webhook);  
-}
-
-
-
-function testTweet() {
-  // pickUpTweetInOrderは用意しました
-  const message = "test";
-  twitterInstances['test'].postTweet('test');
-  twitterInstances['honban'].postTweet('honban');
 }
 
 var accounts = ['test', 'honban'];

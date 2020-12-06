@@ -133,13 +133,6 @@ function toTweet(tweet_text, media_id_strings=[], test_flg=false){
   // ツイート
   if (media_id_strings.length) {
     // 画像がある場合
-//    const imageBlobs = twit.grabImages(imageUrls);
-//    console.log("imageBlobs: %s", imageBlobs);
-//    const uploadImgs = twit.uploadMedias(twit, imageBlobs);
-//    console.log("uploadImgs: %s", uploadImgs);
-//    const media_id_strings = uploadImgs
-//    .map((blob) => blob.media_id_string)
-//    .join(",");
     console.log("media_id_strings: %s", media_id_strings);
     
     return instance.postTweetWithMedia(tweet_text, media_id_strings);
