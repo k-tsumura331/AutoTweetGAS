@@ -168,7 +168,7 @@ function autoDelete(){
 // 全文一致ツイートの削除(【で始まるツイートの場合のみ実行)
 function deleteSameTweet(tweet_txt){
   if(tweet_txt.match('^【[^\n]*】')){
-    const twjsons = getTweetJsons();
+    const twjsons = twitterInstances['honban'].getTweetJsons();
     const deleteList = twjsons.filter(tweet => tweet.text == tweet_txt);
     const deleteIds = deleteList.map(tweet => tweet.id_str);
     deleteIds.forEach(id => twitterInstances['honban'].postDestroy(id));    
