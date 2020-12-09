@@ -12,3 +12,8 @@ $ yarn clasp login
 ```
 $ yarn run clasp push
 ```
+
+## download from GAS
+```
+$ yarn run clasp pull
+```
