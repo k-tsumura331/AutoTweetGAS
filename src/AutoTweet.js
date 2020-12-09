@@ -7,6 +7,18 @@ function autoTweet() {
   }
 }
 
+// メニュー追加
+function onOpen() {
+  const ui = SpreadsheetApp.getUi()
+  //メニュー名を決定
+  const menu = ui.createMenu("GASメニュー");
+  //メニューに実行ボタン名と関数を割り当て: その1
+  menu.addItem("テストツイート","testTweet");
+  //スプレッドシートに反映
+  menu.addToUi();
+}
+
+
 // 起動時間の制御
 function timeFilter() {
   const TIME_SHEET_NAME = "time_schedule";
