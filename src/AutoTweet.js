@@ -22,27 +22,42 @@ function onOpen() {
 // 起動時間の制御
 function timeFilter() {
   const TIME_SHEET_NAME = "time_schedule";
+  const now = new Date();
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getSheetByName(TIME_SHEET_NAME);
   const values = sheet.getRange(2, 1, 96, 2).getDisplayValues();
+  
+  // 0分15分30分４５分以外は処理終了
+  if(now.getMinutes() % 15 != 0){
+     return false;
+  }
   
   // 配列の内容をキーに添字をvaluesに配置
   let timeObject = {};
   for(let item of values){
     timeObject[item[0]] = item[1];
   }  
-  const now = new Date();
-  const hantei = now.getHours() + ':' + Math.trunc(now.getMinutes() / 15) * 15;
+  const hantei = now.getHours() + ':' + now.getMinutes();
   console.log(`timeFilter: ${timeObject[hantei]}`)
   return (timeObject[hantei] == 'TRUE');
 }
 
+// メニュー追加
+function onOpen() {
+  const ui = SpreadsheetApp.getUi()
+  //メニュー名を決定
+  const menu = ui.createMenu("GASメニュー");
+  //メニューに実行ボタン名と関数を割り当て: その1
+  menu.addItem("テストツイート","testTweet");
+  //スプレッドシートに反映
+  menu.addToUi();
+}
 
 function testTweet() {
   const TWEET_SHEET_NAME = "auto_tweet";
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getSheetByName(TWEET_SHEET_NAME);
-
+  
   // ポップアップ出力しIDを取得
   const result = Browser.inputBox("テストツイート対象のIDを入力してください。", "ID:", Browser.Buttons.OK);
   const rowId = parseInt(result,10);
@@ -50,7 +65,7 @@ function testTweet() {
     Browser.msgBox("数値で入力してください。");
     return 1;
   }
-
+  
   // シートの全セルデータを取得
   const values = sheet.getDataRange().getValues();
   const headArray = values[2];
@@ -69,9 +84,7 @@ function testTweet() {
     return 1;
   }
   toSlack(`テストアカウントで以下ツイートを実施。\n投稿ID：${id}\n内容：${tweet_text}`);
-
 }
-
 
 function tweetFromSpreadSheet() {
   const TWEET_SHEET_NAME = "auto_tweet";
@@ -89,8 +102,6 @@ function tweetFromSpreadSheet() {
   const now = new Date();
   const media_id_strings = getMediaIdStrings(obj);
   
-  console.log(obj);
-  
   // 前回投稿時から間隔が短ければ投稿処理を見送る
   console.log(`now: ${now} next: ${next_tweet_time}`)
   if (now <= next_tweet_time) {
@@ -103,21 +114,29 @@ function tweetFromSpreadSheet() {
     );
     return 0;
   }
-
-  try {
-    // 全文一致するツイートを削除
-    deleteSameTweet(tweet_text);
-    // 本番アカウントでツイート
-    toTweet(tweet_text, media_id_strings, false);
-  } catch (e) {
-    console.log(`エラー発生:${e}`);
-    sheetUpdate(sheet, id, (message = e), (retry = false), (error = true));
-    toSlack(`自動投稿に失敗しました。\n投稿ID：${id}\nエラー内容：${e}`);
-    return 1;
-  }
   
+  // セルフリツイート分岐
+  const selfRetweetWord = '/selfRetweet';
+  if(obj["tweet_text"] == selfRetweetWord){
+    const url = obj['retweet_url'];
+    const id = url.match(/([0-9]+)\/*$/)[1];
+    console.log(`url: ${url}, id: ${id}`)
+    twitterInstances['honban'].postRetweet(id);
+  }else{
+    try {
+      // 全文一致するツイートを削除
+      deleteSameTweet(tweet_text);
+      // 本番アカウントでツイート
+      toTweet(tweet_text, media_id_strings, false);
+    } catch (e) {
+      console.log(`エラー発生:${e}`);
+      sheetUpdate(sheet, id, (message = e), (retry = false), (error = true));
+      toSlack(`自動投稿に失敗しました。\n投稿ID：${id}\nエラー内容：${e}`);
+      return 1;
+    }
+  }
   // toSlack(`以下ツイートを実施。\n投稿ID：${id}\n内容：${tweet_text}`);
-
+  
   // 前回投稿時刻の更新
   sheetUpdate(sheet, id, (message = "自動投稿が正常終了しました。"));
 }

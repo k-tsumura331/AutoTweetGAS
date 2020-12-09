@@ -4,8 +4,7 @@
     "libraries": [{
       "userSymbol": "TwitterClient",
       "libraryId": "11CnenIfnMfdxigWdL7Y0_cQYMiOcGNhI3iXeKCq5-QuWZ1-nzIssDo3p",
-      "version": "6",
-      "developmentMode": true
+      "version": "7"
     }]
   },
   "exceptionLogging": "STACKDRIVER",

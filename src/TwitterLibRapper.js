@@ -2,15 +2,35 @@
 
 
 function delmuda(){
-  const scriptProp = PropertiesService.getScriptProperties();
-  let consumer_key =  scriptProp.getProperty("CONSUMER_KEY")
-  let consumer_sercret = scriptProp.getProperty("CONSUMER_SECRET");
+ const scriptProp = PropertiesService.getScriptProperties();
+ let consumer_key =  scriptProp.getProperty("CONSUMER_KEY")
+ let consumer_sercret = scriptProp.getProperty("CONSUMER_SECRET");
   let webhook = scriptProp.getProperty("WEBHOOK_URL");
-  scriptProp.deleteAllProperties(); 
+ scriptProp.deleteAllProperties(); 
   scriptProp.setProperty("CONSUMER_KEY", consumer_key);
   scriptProp.setProperty("CONSUMER_SECRET", consumer_sercret);
   scriptProp.setProperty("WEBHOOK_URL", webhook);  
 }
+
+
+
+function test_Tweet() {
+  // pickUpTweetInOrderは用意しました
+  const message = "test";
+  twitterInstances['test'].postTweet('test');
+  twitterInstances['honban'].postTweet('honban');
+}
+
+function test_Retweet() {
+  // pickUpTweetInOrderは用意しました
+  const id = "1336092820621418496";
+  //twitterInstances['test'].postTweet('test');
+  twitterInstances['honban'].postRetweet(id);
+}
+
+
+
+
 
 var accounts = ['test', 'honban'];
 // 認証用インスタンス（複数入れられるように）
