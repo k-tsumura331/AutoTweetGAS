@@ -7,69 +7,72 @@ function autoTweet() {
   }
 }
 
-// メニュー追加
-function onOpen() {
-  const ui = SpreadsheetApp.getUi()
-  //メニュー名を決定
-  const menu = ui.createMenu("GASメニュー");  
-  //メニューに実行ボタン名と関数を割り当て: その1
-  menu.addItem("テストツイート","testTweet");
-  //スプレッドシートに反映
-  menu.addToUi();
-}
-
-
 // 起動時間の制御
 function timeFilter() {
   const TIME_SHEET_NAME = "time_schedule";
+  const now = new Date();
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getSheetByName(TIME_SHEET_NAME);
   const values = sheet.getRange(2, 1, 96, 2).getDisplayValues();
+  
+  // 0分15分30分４５分以外は処理終了
+  if(now.getMinutes() % 15 != 0){
+     return false;
+  }
   
   // 配列の内容をキーに添字をvaluesに配置
   let timeObject = {};
   for(let item of values){
     timeObject[item[0]] = item[1];
   }  
-  const now = new Date();
-  const hantei = now.getHours() + ':' + Math.trunc(now.getMinutes() / 15) * 15;
+  const hantei = now.getHours() + ':' + now.getMinutes();
+  console.log(`timeFilter: ${timeObject[hantei]}`)
   return (timeObject[hantei] == 'TRUE');
 }
 
+// メニュー追加
+function onOpen() {
+  const ui = SpreadsheetApp.getUi()
+  //メニュー名を決定
+  const menu = ui.createMenu("GASメニュー");
+  //メニューに実行ボタン名と関数を割り当て: その1
+  menu.addItem("テストツイート","testTweet");
+  //スプレッドシートに反映
+  menu.addToUi();
+}
 
 function testTweet() {
   const TWEET_SHEET_NAME = "auto_tweet";
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getSheetByName(TWEET_SHEET_NAME);
-
+  
   // ポップアップ出力しIDを取得
-//  const result = Browser.inputBox("テストツイート対象のIDを入力してください。", "ID:", Browser.Buttons.OK);
-//  const rowId = parseInt(result,10);
-  const rowId = 1;
+  const result = Browser.inputBox("テストツイート対象のIDを入力してください。", "ID:", Browser.Buttons.OK);
+  const rowId = parseInt(result,10);
   if (rowId === NaN){
     Browser.msgBox("数値で入力してください。");
     return 1;
   }
-
+  
   // シートの全セルデータを取得
   const values = sheet.getDataRange().getValues();
   const headArray = values[2];
-  // 先頭の見出し3行を削除
-  const obj = getTweetRow(values[3 + rowId], headArray);
+  // 指定IDのみ切り出す
+  const obj = getTweetRow(values.slice(2 + rowId, 3 + rowId), headArray);
   const id = obj["id"];
-  const tweet_text = obj["tweet_text"] + obj['retweet_url'];
-  const imageUrls = get_imageUrls(obj);
+  const tweet_text = obj['tweet_text'] + obj['retweet_url'];
+  const media_id_strings = getMediaIdStrings(obj, true);
   
   try {
     // テストアカウントでツイート
-    toTweet(tweet_text, imageUrls, true);
+    toTweet(tweet_text, media_id_strings, true);
   } catch (e) {
     console.log(`エラー発生:${e}`);
     toSlack(`テストツイートに失敗しました。\n投稿ID：${id}\nエラー内容：${e}`);
     return 1;
   }
+  toSlack(`テストアカウントで以下ツイートを実施。\n投稿ID：${id}\n内容：${tweet_text}`);
 }
-
 
 function tweetFromSpreadSheet() {
   const TWEET_SHEET_NAME = "auto_tweet";
@@ -85,7 +88,7 @@ function tweetFromSpreadSheet() {
   const tweet_text = obj["tweet_text"] + obj['retweet_url'];
   const next_tweet_time = obj["next_tweet_time"];
   const now = new Date();
-  const imageUrls = get_imageUrls(obj);
+  const media_id_strings = getMediaIdStrings(obj);
   
   // 前回投稿時から間隔が短ければ投稿処理を見送る
   console.log(`now: ${now} next: ${next_tweet_time}`)
@@ -99,18 +102,28 @@ function tweetFromSpreadSheet() {
     );
     return 0;
   }
-
-  try {
-    // 全文一致するツイートを削除
-    deleteSameTweet(tweet_text);
-    // 本番アカウントでツイート
-    toTweet(tweet_text, imageUrls, false);
-  } catch (e) {
-    console.log(`エラー発生:${e}`);
-    sheetUpdate(sheet, id, (message = e), (retry = false), (error = true));
-    toSlack(`自動投稿に失敗しました。\n投稿ID：${id}\nエラー内容：${e}`);
-    return 1;
+  
+  // セルフリツイート分岐
+  const selfRetweetWord = '/selfRetweet';
+  if(obj["tweet_text"] == selfRetweetWord){
+    const url = obj['retweet_url'];
+    const id = url.match(/([0-9]+)\/*$/)[1];
+    console.log(`url: ${url}, id: ${id}`)
+    twitterInstances['honban'].postRetweet(id);
+  }else{
+    try {
+      // 全文一致するツイートを削除
+      deleteSameTweet(tweet_text);
+      // 本番アカウントでツイート
+      toTweet(tweet_text, media_id_strings, false);
+    } catch (e) {
+      console.log(`エラー発生:${e}`);
+      sheetUpdate(sheet, id, (message = e), (retry = false), (error = true));
+      toSlack(`自動投稿に失敗しました。\n投稿ID：${id}\nエラー内容：${e}`);
+      return 1;
+    }
   }
+  // toSlack(`以下ツイートを実施。\n投稿ID：${id}\n内容：${tweet_text}`);
   
   // 前回投稿時刻の更新
   sheetUpdate(sheet, id, (message = "自動投稿が正常終了しました。"));
@@ -119,50 +132,20 @@ function tweetFromSpreadSheet() {
 
 
 // ツイート実行
-function toTweet(tweet_text, imageUrls, test_flg=false){
-  const scriptProps = PropertiesService.getScriptProperties();
+function toTweet(tweet_text, media_id_strings=[], test_flg=false){
+  let instance = twitterInstances['honban'];
   if(test_flg){
-    // テストアカウントでツイート
-    scriptProps.setProperty(
-      "TWITTER_ACCESS_TOKEN",
-      scriptProps.getProperty("ACCESS_TOKEN_TEST")
-    );
-    scriptProps.setProperty(
-      "TWITTER_ACCESS_SECRET",
-      scriptProps.getProperty("ACCESS_SECRET_TEST")
-    );
-  }else{
-    // 本番アカウントでツイート
-    scriptProps.setProperty(
-      "TWITTER_ACCESS_TOKEN",
-      scriptProps.getProperty("ACCESS_TOKEN_HONBAN")
-    );
-    scriptProps.setProperty(
-      "TWITTER_ACCESS_SECRET",
-      scriptProps.getProperty("ACCESS_SECRET_HONBAN")
-    );
+    instance = twitterInstances['test'];
   }
-  console.log(scriptProps);
-  return 0;
-  const twit = new OAuthMI(scriptProps);
-    
   // ツイート
-  if (imageUrls.length) {
+  if (media_id_strings.length) {
     // 画像がある場合
-    var imageBlobs = twit.grabImages(imageUrls);
-    Logger.log("imageBlobs: %s", imageBlobs);
-    var uploadImgs = twit.uploadMedias(twit, imageBlobs);
-    Logger.log("uploadImgs: %s", uploadImgs);
-    const media_id_strings = uploadImgs
-    .map((blob) => blob.media_id_string)
-    .join(",");
-    Logger.log("media_id_strings: %s", media_id_strings);
-    var response = twit.sendTweet(tweet_text, {
-      media_ids: media_id_strings,
-    });
+    console.log("media_id_strings: %s", media_id_strings);
+    
+    return instance.postTweetWithMedia(tweet_text, media_id_strings);
   } else {
     // 画像がない場合
-    var response = twit.sendTweet(tweet_text);
+    return instance.postTweet(tweet_text);
   }
 }
 
@@ -211,20 +194,3 @@ function sheetUpdate(sheet, id, message = "", retry = false, error = false) {
   }
 }
 
-// 画像URL1~4取得
-function get_imageUrls(obj) {
-  var imageUrls = [];
-  // if (obj["imageUrl1"].length) {
-  //   imageUrls.push(obj["imageUrl1"]);
-  // }
-  // if (obj["imageUrl2"].length) {
-  //   imageUrls.push(obj["imageUrl2"]);
-  // }
-  // if (obj["imageUrl3"].length) {
-  //   imageUrls.push(obj["imageUrl3"]);
-  // }
-  // if (obj["imageUrl4"].length) {
-  //   imageUrls.push(obj["imageUrl4"]);
-  // }
-  return imageUrls;
-}

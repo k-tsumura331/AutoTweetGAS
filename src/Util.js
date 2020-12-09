@@ -94,3 +94,27 @@ function getpropertyToString(key) {
   const str = PropertiesService.getScriptProperties().getProperty(key);
   return str != null ? str : "";
 }
+
+// URLからblob型に変換
+function Url2ImageBlob(url) {
+  fetch_url = url
+    .replace("www.dropbox.com", "dl.dropboxusercontent.com")
+    .replace("?dl=0", "");
+  console.log(`fetch_url:${fetch_url}`);
+  try {
+    if (fetch_url.match(/.png/)) {
+      return UrlFetchApp.fetch(fetch_url, { muteHttpException: true }).getAs(
+        "image/png"
+      );
+    }
+    if (fetch_url.match(/.jpeg/) || fetch_url.match(/.jpg/)) {
+      return UrlFetchApp.fetch(fetch_url, { muteHttpExceptions: true }).getAs(
+        "image/jpeg"
+      );
+    }
+  } catch (ex) {
+    console.log(
+      `Message: ${ex.message}\r\nFile: ${ex.fileName}\r\nLine: ${ex.lineNumber}\r\n`
+    );
+  }
+}

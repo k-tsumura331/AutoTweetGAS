@@ -1,4 +1,3 @@
-
 // 検索ボタン
 function searchButtonFunc() {
   const DELETE_SHEET_NAME = "search_and_delete";
@@ -65,7 +64,7 @@ function delButtonFunc() {
   
   values.forEach(function (row) {
     if (row[1]) {
-      if (deleteById(row[0])) {
+      if (twitterInstances['honban'].postDestroy(row[0])) {
         // 削除成功
         result.push("削除処理が完了しました。");
       } else {
@@ -101,7 +100,7 @@ function searchTweets(regexp, targetDate) {
 
 // 指定ID以前の全ツイートを取得
 function getAllTweet(maxid) {
-  const tweetJsons = getTweetJsons(maxid);
+  const tweetJsons = twitterInstances['honban'].getTweetJsons(maxid);
   
   // 最後までたどっていたら返す
   if (tweetJsons.length == 1) {
@@ -114,10 +113,10 @@ function getAllTweet(maxid) {
 // 指定時刻以前のツイートIDを取得
 function getTweetIdByTime(targetDate, maxid = 0) {
   // ツイートを200件取得
-  const tweetJsons = getTweetJsons(maxid);
+  const tweetJsons = twitterInstances['honban'].getTweetJsons(maxid);
   
   // 対象が存在しなければ0を返す
-  if (tweetJsons.length == 1) {
+  if (tweetJsons.length == 1 || tweetJsons.length == 0) {
     return 0;
   }
   
@@ -163,15 +162,15 @@ function autoDelete(){
     // ツイート検索
     const tweets = searchTweets(regexp, targetDate);
     const deleteIds = tweets.map(tweet => tweet.id_str);
-    deleteIds.forEach(id => deleteById(id));
+    deleteIds.forEach(id => twitterInstances['honban'].postDestroy(id));
 }
 
 // 全文一致ツイートの削除(【で始まるツイートの場合のみ実行)
 function deleteSameTweet(tweet_txt){
   if(tweet_txt.match('^【[^\n]*】')){
-    const twjsons = getTweetJsons();
+    const twjsons = twitterInstances['honban'].getTweetJsons();
     const deleteList = twjsons.filter(tweet => tweet.text == tweet_txt);
     const deleteIds = deleteList.map(tweet => tweet.id_str);
-    deleteIds.forEach(id => deleteById(id));    
+    deleteIds.forEach(id => twitterInstances['honban'].postDestroy(id));    
   }
 }
