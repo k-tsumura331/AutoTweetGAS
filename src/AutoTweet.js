@@ -104,7 +104,7 @@ function tweetFromSpreadSheet() {
   }
   
   // セルフリツイート分岐
-  const selfRetweetWord = '/selfRetweet';
+  const selfRetweetWord = '/selfrt';
   if(obj["tweet_text"] == selfRetweetWord){
     const url = obj['retweet_url'];
     const id = url.match(/([0-9]+)\/*$/)[1];
