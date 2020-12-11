@@ -84,7 +84,7 @@ function reset () {
 */
 function authCallback (request) {
   let clientList = TwitterClient.getClientList();
-  instance = clientList[request.parameter.serviceName];
+  let instance = clientList[request.parameter.serviceName];
   return instance.authCallback(request)
 }
 
