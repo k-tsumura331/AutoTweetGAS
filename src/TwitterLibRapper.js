@@ -1,15 +1,15 @@
 'use strict';
 
 
-function delmuda(){
- const scriptProp = PropertiesService.getScriptProperties();
- let consumer_key =  scriptProp.getProperty("CONSUMER_KEY")
- let consumer_sercret = scriptProp.getProperty("CONSUMER_SECRET");
+function delmuda() {
+  const scriptProp = PropertiesService.getScriptProperties();
+  let consumer_key = scriptProp.getProperty("CONSUMER_KEY")
+  let consumer_sercret = scriptProp.getProperty("CONSUMER_SECRET");
   let webhook = scriptProp.getProperty("WEBHOOK_URL");
- scriptProp.deleteAllProperties(); 
+  scriptProp.deleteAllProperties();
   scriptProp.setProperty("CONSUMER_KEY", consumer_key);
   scriptProp.setProperty("CONSUMER_SECRET", consumer_sercret);
-  scriptProp.setProperty("WEBHOOK_URL", webhook);  
+  scriptProp.setProperty("WEBHOOK_URL", webhook);
 }
 
 
@@ -42,7 +42,7 @@ for (var i in accounts) {
     PropertiesService.getScriptProperties().getProperty("CONSUMER_SECRET"),
     account
   );
-  
+
   // 作ったserviceインスタンスを保存しておく
   twitterInstances[account] = instance;
 }
@@ -54,7 +54,7 @@ function getCallbackUrl() {
   }
 }
 
-function authorize () {
+function authorize() {
   for (let key in twitterInstances) {
     instance = twitterInstances[key];
     console.log(`${key}:`);
@@ -69,7 +69,7 @@ function getLastURL() {
 /**
 * 認証を削除したい時はこれを実行する
 */
-function reset () {
+function reset() {
   let clientList = TwitterClient.getClientList();
   for (let key in clientList) {
     let instance = clientList[key];
@@ -82,7 +82,7 @@ function reset () {
 ｀* authorizeでTwitterでの認証後に実行される処理
 * ※手動で実行はしません
 */
-function authCallback (request) {
+function authCallback(request) {
   let clientList = TwitterClient.getClientList();
   let instance = clientList[request.parameter.serviceName];
   return instance.authCallback(request)
@@ -94,7 +94,7 @@ function postUpdateStatus(message) {
   if (message == "") {
     return;
   }
-  var service  = twitter.getService();
+  var service = twitter.getService();
   var response = service.fetch('https://api.twitter.com/1.1/statuses/update.json', {
     method: 'post',
     payload: { status: message }
@@ -104,10 +104,10 @@ function postUpdateStatus(message) {
 // 画像URL1~4を取得し、アップロード
 function getMediaIdStrings(obj, testFlg = false) {
   let instance = twitterInstances['honban'];
-  if(testFlg){
+  if (testFlg) {
     instance = twitterInstances['test'];
   }
-  
+
   let media_id_strings = [];
   if (obj["image_url1"].length) {
     media_id_strings.push(instance.uploadTwitterForDropBoxMedia(obj["image_url1"]));

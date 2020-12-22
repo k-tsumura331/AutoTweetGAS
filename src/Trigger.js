@@ -11,29 +11,29 @@ function timeSchedule() {
 
   // 投稿対象列がTRUEの時刻にトリガーを設定
   let timeObject = {};
-  for(let time of values){
-    if(time[1] == 'TRUE'){
+  for (let time of values) {
+    if (time[1] == 'TRUE') {
       setTrigger(time[0], 'tweetFromSpreadSheet')
     }
   }
 }
 
-function deldel(){
+function deldel() {
   delTrigger('autoTweet');
 }
 
 
 // 
-function setTrigger(time_str, funcName){
+function setTrigger(time_str, funcName) {
   const timer = new Date();
   const now = new Date();
 
   time = time_str.match(/(\d+):(\d+)/);
   console.log(time);
-  
+
   timer.setHours(time[1]);
   timer.setMinutes(time[2]);
-  if(now > timer){
+  if (now > timer) {
     timer.setDate(timer.getDate() + 1);
   }
   ScriptApp.newTrigger(funcName).timeBased().at(timer).create();
@@ -41,8 +41,8 @@ function setTrigger(time_str, funcName){
 
 function delTrigger(funcName) {
   const triggers = ScriptApp.getProjectTriggers();
-  for(const trigger of triggers){
-    if(trigger.getHandlerFunction() == funcName){
+  for (const trigger of triggers) {
+    if (trigger.getHandlerFunction() == funcName) {
       ScriptApp.deleteTrigger(trigger);
     }
   }

@@ -4,27 +4,27 @@ function searchButtonFunc() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
     DELETE_SHEET_NAME
   );
-  
+
   const regexp = sheet.getRange("C2").getValue();
   const intervalDay = sheet.getRange("C3").getValue();
-  
+
   // 必須欄が未入力なら終了
   if (regexp === "" || intervalDay === "") {
     return 0;
   }
-  
+
   // 結果出力エリアをクリア
   rowClear(sheet, 8);
-  
+
   // 取得対象時刻を設定
   let targetDate = new Date();
   targetDate.setDate(targetDate.getDate() - intervalDay);
-  
+
   try {
     // ツイート検索
     const tweets = searchTweets(regexp, targetDate);
     const shapedTweets = shapeTweets(tweets);
-    
+
     // 対象があれば結果リストをシートに反映
     if (shapedTweets.length) {
       insertArray(sheet, shapedTweets, 8, 1);
@@ -46,7 +46,7 @@ function clearButtonFunc() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
     DELETE_SHEET_NAME
   );
-  
+
   rowClear(sheet, 8);
 }
 
@@ -56,12 +56,12 @@ function delButtonFunc() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
     DELETE_SHEET_NAME
   );
-  
+
   // range取得
   const lastRow = sheet.getLastRow();
   const values = sheet.getRange(8, 1, sheet.getLastRow() - 7, 4).getValues();
   const result = [];
-  
+
   values.forEach(function (row) {
     if (row[1]) {
       if (twitterInstances['honban'].postDestroy(row[0])) {
@@ -76,7 +76,7 @@ function delButtonFunc() {
       result.push("");
     }
   });
-  
+
   // 処理結果をシートに反映
   insertArray(sheet, splitArray(result, 1), 8, 5);
 }
@@ -85,15 +85,15 @@ function delButtonFunc() {
 function searchTweets(regexp, targetDate) {
   // 取得対象時刻により過去で、最新のツイートID
   const tweetId = getTweetIdByTime(targetDate);
-  
+
   // 検索対象以前のツイートが存在しなければポップアップ
   if (tweetId === 0) {
     return [];
   }
-  
+
   // 対象の全ツイートを取得
   const tweets = getAllTweet(tweetId);
-  
+
   // 正規表現のチェック
   return tweets.filter((tweet) => tweet.text.match(regexp));
 }
@@ -101,7 +101,7 @@ function searchTweets(regexp, targetDate) {
 // 指定ID以前の全ツイートを取得
 function getAllTweet(maxid) {
   const tweetJsons = twitterInstances['honban'].getTweetJsons(maxid);
-  
+
   // 最後までたどっていたら返す
   if (tweetJsons.length == 1) {
     return tweetJsons;
@@ -114,21 +114,21 @@ function getAllTweet(maxid) {
 function getTweetIdByTime(targetDate, maxid = 0) {
   // ツイートを200件取得
   const tweetJsons = twitterInstances['honban'].getTweetJsons(maxid);
-  
+
   // 対象が存在しなければ0を返す
   if (tweetJsons.length == 1 || tweetJsons.length == 0) {
     return 0;
   }
-  
+
   // 指定時刻以前のツイートを検索
   const found = tweetJsons.find(
     (tweetJson) => new Date(Date.parse(tweetJson.created_at)) <= targetDate
   );
-  
+
   if (found === undefined) {
     // 存在しないなら次の200件を検索する
     const lastTweetJson = tweetJsons.slice(-1)[0];
-    
+
     console.log(
       "ID:%s DATE:%s",
       lastTweetJson.id_str,
@@ -145,32 +145,32 @@ function getTweetIdByTime(targetDate, maxid = 0) {
 function shapeTweets(tweetJsons) {
   const shapedTweets = tweetJsons.map(function (tweetJson) {
     const date = new Date(Date.parse(tweetJson.created_at));
-    return [tweetJson.id_str,"",tweetJson.text,Utilities.formatDate(date, "JST", "yyyy/MM/dd HH:mm:ss")];
+    return [tweetJson.id_str, "", tweetJson.text, Utilities.formatDate(date, "JST", "yyyy/MM/dd HH:mm:ss")];
   });
   return shapedTweets;
 }
 
 // 自動削除機能
-function autoDelete(){
+function autoDelete() {
   const regexp = '^【[^\n]*】';
   const intervalDay = 5;
-  
+
   // 取得対象時刻を設定
   let targetDate = new Date();
   targetDate.setDate(targetDate.getDate() - intervalDay);
-  
-    // ツイート検索
-    const tweets = searchTweets(regexp, targetDate);
-    const deleteIds = tweets.map(tweet => tweet.id_str);
-    deleteIds.forEach(id => twitterInstances['honban'].postDestroy(id));
+
+  // ツイート検索
+  const tweets = searchTweets(regexp, targetDate);
+  const deleteIds = tweets.map(tweet => tweet.id_str);
+  deleteIds.forEach(id => twitterInstances['honban'].postDestroy(id));
 }
 
 // 全文一致ツイートの削除(【で始まるツイートの場合のみ実行)
-function deleteSameTweet(tweet_txt){
-  if(tweet_txt.match('^【[^\n]*】')){
+function deleteSameTweet(tweet_txt) {
+  if (tweet_txt.match('^【[^\n]*】')) {
     const twjsons = twitterInstances['honban'].getTweetJsons();
     const deleteList = twjsons.filter(tweet => tweet.text == tweet_txt);
     const deleteIds = deleteList.map(tweet => tweet.id_str);
-    deleteIds.forEach(id => twitterInstances['honban'].postDestroy(id));    
+    deleteIds.forEach(id => twitterInstances['honban'].postDestroy(id));
   }
 }

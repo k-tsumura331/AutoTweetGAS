@@ -40,7 +40,7 @@ function convertRowToObject(values) {
 function lenb(str) {
   var len = 0;
   str = escape(str);
-  for (var i = 0; i < str.length; i++, len++) {
+  for (var i = 0; i < str.length; i++ , len++) {
     if (str.charAt(i) == "%") {
       if (str.charAt(++i) == "u") {
         i += 3;
