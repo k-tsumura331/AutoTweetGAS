@@ -30,13 +30,14 @@ function timeFilter() {
   return (timeObject[hantei] == 'TRUE');
 }
 
+
 // メニュー追加
 function onOpen() {
   const ui = SpreadsheetApp.getUi()
   //メニュー名を決定
   const menu = ui.createMenu("GASメニュー");
   //メニューに実行ボタン名と関数を割り当て: その1
-  menu.addItem("テストツイート", "testTweet");
+  menu.addItem("テスト投稿", "testTweet");
   //スプレッドシートに反映
   menu.addToUi();
 }
@@ -46,13 +47,24 @@ function testTweet() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getSheetByName(TWEET_SHEET_NAME);
 
+
+  const activeRow = sheet.getActiveCell().getRow();
+  const getId = sheet.getRange(activeRow, 1).getValue();
+  console.log(`行 : ${activeRow}, ID: ${getId}`);
+
   // ポップアップ出力しIDを取得
-  const result = Browser.inputBox("テストツイート対象のIDを入力してください。", "ID:", Browser.Buttons.OK);
-  const rowId = parseInt(result, 10);
-  if (rowId === NaN) {
-    Browser.msgBox("数値で入力してください。");
+  const rowId = parseInt(getId, 10);
+  if (isNaN(rowId)) {
+    Browser.msgBox("テスト投稿を行いたい行を選択してください。");
     return 1;
   }
+  const result = Browser.msgBox(`管理ID:${rowId}をテスト投稿します。`, Browser.Buttons.OK_CANCEL);
+  if (result == 'cancel') {
+    return 0;
+  }
+
+
+
 
   // シートの全セルデータを取得
   const values = sheet.getDataRange().getValues();
@@ -205,10 +217,10 @@ function sheetUpdate(sheet, id, message = "", retry = false, error = false) {
   }
 }
 
-// 投稿結果を履歴シートに記録
+// 自動投稿結果を履歴シートに記録
 function record(id) {
   const TWEET_SHEET_NAME = "auto_tweet";
-  const RECORD_SHEET_NAME = "投稿履歴";
+  const RECORD_SHEET_NAME = "自動投稿履歴";
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getSheetByName(TWEET_SHEET_NAME);
   const sheet2 = spreadsheet.getSheetByName(RECORD_SHEET_NAME);

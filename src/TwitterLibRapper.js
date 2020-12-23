@@ -1,6 +1,5 @@
 'use strict';
 
-
 function delmuda() {
   const scriptProp = PropertiesService.getScriptProperties();
   let consumer_key = scriptProp.getProperty("CONSUMER_KEY")
@@ -11,8 +10,6 @@ function delmuda() {
   scriptProp.setProperty("CONSUMER_SECRET", consumer_sercret);
   scriptProp.setProperty("WEBHOOK_URL", webhook);
 }
-
-
 
 function test_Tweet() {
   // pickUpTweetInOrderは用意しました

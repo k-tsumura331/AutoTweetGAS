@@ -163,6 +163,9 @@ function autoDelete() {
   const tweets = searchTweets(regexp, targetDate);
   const deleteIds = tweets.map(tweet => tweet.id_str);
   deleteIds.forEach(id => twitterInstances['honban'].postDestroy(id));
+
+  // 削除履歴の保存
+  tweets.forEach(tweet => recordDeleteLog(tweet.id_str, tweet.text));
 }
 
 // 全文一致ツイートの削除(【で始まるツイートの場合のみ実行)
@@ -170,7 +173,26 @@ function deleteSameTweet(tweet_txt) {
   if (tweet_txt.match('^【[^\n]*】')) {
     const twjsons = twitterInstances['honban'].getTweetJsons();
     const deleteList = twjsons.filter(tweet => tweet.text == tweet_txt);
-    const deleteIds = deleteList.map(tweet => tweet.id_str);
-    deleteIds.forEach(id => twitterInstances['honban'].postDestroy(id));
+
+    // ツイート削除    
+    deleteList.forEach(tweet => twitterInstances['honban'].postDestroy(tweet.id_str));
+
+    // 削除履歴の保存
+    deleteList.forEach(tweet => recordDeleteLog(tweet.id_str, tweet.text));
   }
 }
+
+// 削除結果を履歴シートに記録
+function recordDeleteLog(tweet_id, tweet_txt) {
+  const TWEET_SHEET_NAME = "auto_tweet";
+  const RECORD_SHEET_NAME = "削除履歴";
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getSheetByName(TWEET_SHEET_NAME);
+  const sheet2 = spreadsheet.getSheetByName(RECORD_SHEET_NAME);
+  const now = new Date();
+  
+  // 履歴書き出し
+  const array = [[tweet_id, tweet_txt, now]];
+  sheet2.getRange(sheet2.getLastRow() + 1, 1, 1, 3).setValues(array);
+}
+
