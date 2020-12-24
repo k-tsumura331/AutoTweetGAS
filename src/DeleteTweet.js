@@ -128,12 +128,7 @@ function getTweetIdByTime(targetDate, maxid = 0) {
   if (found === undefined) {
     // 存在しないなら次の200件を検索する
     const lastTweetJson = tweetJsons.slice(-1)[0];
-
-    console.log(
-      "ID:%s DATE:%s",
-      lastTweetJson.id_str,
-      lastTweetJson.created_at
-    );
+    console.log(`getTweetIdByTime tweet_id:${lastTweetJson.id_str} date:${lastTweetJson.created_at}`);
     return getTweetIdByTime(targetDate, lastTweetJson.id_str);
   } else {
     // 存在するならそのIDを返す
@@ -190,7 +185,7 @@ function recordDeleteLog(tweet_id, tweet_txt) {
   const sheet = spreadsheet.getSheetByName(TWEET_SHEET_NAME);
   const sheet2 = spreadsheet.getSheetByName(RECORD_SHEET_NAME);
   const now = new Date();
-  
+
   // 履歴書き出し
   const array = [[tweet_id, tweet_txt, now]];
   sheet2.getRange(sheet2.getLastRow() + 1, 1, 1, 3).setValues(array);

@@ -68,6 +68,7 @@ function splitArray(array, part) {
 // slackに通知
 // 設定は以下で行う　https://sugorokuya.slack.com/services/B01FGS38SS1
 function toSlack(msg) {
+  console.log(`toSlack:${msg}`);
   const webHook = PropertiesService.getScriptProperties().getProperty(
     "WEBHOOK_URL"
   );
@@ -113,8 +114,19 @@ function Url2ImageBlob(url) {
       );
     }
   } catch (ex) {
-    console.log(
-      `Message: ${ex.message}\r\nFile: ${ex.fileName}\r\nLine: ${ex.lineNumber}\r\n`
-    );
+    console.log(`Exception in Url2ImageBlob\nMessage: ${ex.message}\r\nFile: ${ex.fileName}\r\nLine: ${ex.lineNumber}\r\n`);
   }
+}
+
+// 日付チェック
+function isDate(d) {
+    if (Object.prototype.toString.call(d) === "[object Date]") {
+        if (isNaN(d.getTime())) {
+            return false;
+        } else {
+            return true;
+        }
+    } else {
+        return false;
+    }
 }

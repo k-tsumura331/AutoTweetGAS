@@ -7,7 +7,7 @@ function autoTweet() {
   }
 }
 
-// 起動時間の制御
+// 現在時刻が自動投稿に相応しい時刻か？
 function timeFilter() {
   const TIME_SHEET_NAME = "time_schedule";
   const now = new Date();
@@ -15,18 +15,18 @@ function timeFilter() {
   const sheet = spreadsheet.getSheetByName(TIME_SHEET_NAME);
   const values = sheet.getRange(2, 1, 96, 2).getDisplayValues();
 
-  // 0分15分30分４５分以外は処理終了
   if (now.getMinutes() % 15 != 0) {
+    console.log(`timeFilter:0分15分30分45分以外は処理終了`);
     return false;
   }
 
-  // 配列の内容をキーに添字をvaluesに配置
+  // タイムスケジュールを現在時刻で検索
   let timeObject = {};
   for (let item of values) {
     timeObject[item[0]] = item[1];
   }
   const hantei = now.getHours() + ':' + ('00' + now.getMinutes()).slice(-2);
-  console.log(`timeFilter: ${timeObject[hantei]}`)
+  console.log(`timeFilter:${timeObject[hantei]}`)
   return (timeObject[hantei] == 'TRUE');
 }
 
@@ -47,24 +47,14 @@ function testTweet() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getSheetByName(TWEET_SHEET_NAME);
 
-
+  // 変な行が選択されている場合エラー
   const activeRow = sheet.getActiveCell().getRow();
   const getId = sheet.getRange(activeRow, 1).getValue();
-  console.log(`行 : ${activeRow}, ID: ${getId}`);
-
-  // ポップアップ出力しIDを取得
   const rowId = parseInt(getId, 10);
   if (isNaN(rowId)) {
     Browser.msgBox("テスト投稿を行いたい行を選択してください。");
     return 1;
   }
-  const result = Browser.msgBox(`管理ID:${rowId}をテスト投稿します。`, Browser.Buttons.OK_CANCEL);
-  if (result == 'cancel') {
-    return 0;
-  }
-
-
-
 
   // シートの全セルデータを取得
   const values = sheet.getDataRange().getValues();
@@ -75,20 +65,26 @@ function testTweet() {
   const tweet_text = obj['tweet_text'] + ' ' + obj['retweet_url'];
   const media_id_strings = getMediaIdStrings(obj, true);
 
+  // 確認メッセージ出力
+  const result = Browser.msgBox(`管理ID：${rowId}\\n投稿内容：\\n${tweet_text}\\n\\n上記内容をテスト投稿します。`, Browser.Buttons.OK_CANCEL);
+  if (result == 'cancel') {
+    return 0;
+  }
+
   try {
     // テストアカウントでツイート
     const selfRetweetWord = '/rt';
     if (obj["tweet_text"] == selfRetweetWord) {
       const url = obj['retweet_url'];
       const id = url.match(/([0-9]+)\/*$/)[1];
-      console.log(`url: ${url}, id: ${id}`)
+      console.log(`retweet_url: ${url}, tweet_id: ${id}`)
       twitterInstances['test'].postRetweet(id);
     } else {
       toTweet(tweet_text, media_id_strings, true);
     }
   } catch (e) {
     console.log(`エラー発生:${e}`);
-    toSlack(`テストツイートに失敗しました。\n投稿ID：${id}\nエラー内容：${e}`);
+    toSlack(`テストツイートに失敗しました。\n投稿ID：${id}\n担当者：${obj['parson'] == '' ? '' : '<' + obj['parson'] + '>'}\nエラー内容：${e}`);
     return 1;
   }
   toSlack(`テストアカウントで以下ツイートを実施。\n投稿ID：${id}\n内容：${tweet_text}`);
@@ -106,19 +102,41 @@ function tweetFromSpreadSheet() {
   const obj = getTweetRow(values.slice(3), headArray);
   const id = obj["id"];
   const tweet_text = obj['tweet_text'] + ' ' + obj['retweet_url'];
-  const next_tweet_time = obj["next_tweet_time"];
   const now = new Date();
   const media_id_strings = getMediaIdStrings(obj);
 
   // 前回投稿時から間隔が短ければ投稿処理を見送る
-  console.log(`now: ${now} next: ${next_tweet_time}`)
-  if (now <= next_tweet_time) {
-    console.log(`投稿優先度の一番高い行(投稿ID:${id})の次回投稿予定時刻に満たないため、投稿処理を見送りました。`);
+  if (now <= obj["next_tweet_time"]) {
+    console.log(`投稿優先度が一番高い行(投稿ID:${id})の次回投稿最短時刻に満たないため、投稿処理を見送りました。`);
     sheetUpdate(
       sheet,
       id,
-      (message = "次回投稿予定時刻に満たないため投稿処理を見送りました。"),
+      (message = "次回投稿最短時刻に満たないため投稿処理を見送りました。"),
       (retry = true)
+    );
+    return 0;
+  }
+
+  // 開始時期に満たない場合、投稿処理を見送る
+  if (isDate(obj["start_time"]) && now < obj["start_time"]) {
+    console.log(`投稿優先度が一番高い行(投稿ID:${id})の開始時期に満たないため、投稿処理を見送りました。`);
+    sheetUpdate(
+      sheet,
+      id,
+      (message = "開始時期に満たないため投稿処理を見送りました。"),
+      (retry = false)
+    );
+    return 0;
+  }
+
+  // 終了時期を越えた場合、投稿処理を見送る
+  if (isDate(obj["end_time"]) && obj["end_time"] < now) {
+    console.log(`投稿優先度が一番高い行(投稿ID:${id})の終了時期を越えたため、投稿処理を見送りました。`);
+    sheetUpdate(
+      sheet,
+      id,
+      (message = "終了時期を越えたため投稿処理を見送りました。"),
+      (retry = false)
     );
     return 0;
   }
@@ -128,7 +146,7 @@ function tweetFromSpreadSheet() {
   if (obj["tweet_text"] == selfRetweetWord) {
     const url = obj['retweet_url'];
     const id = url.match(/([0-9]+)\/*$/)[1];
-    console.log(`url: ${url}, id: ${id}`)
+    console.log(`retweet_url: ${url}, tweet_id: ${id}`)
     twitterInstances['honban'].postRetweet(id);
   } else {
     try {
@@ -139,7 +157,7 @@ function tweetFromSpreadSheet() {
     } catch (e) {
       console.log(`エラー発生:${e}`);
       sheetUpdate(sheet, id, (message = e), (retry = false), (error = true));
-      toSlack(`自動投稿に失敗しました。\n投稿ID：${id}\nエラー内容：${e}`);
+      toSlack(`自動投稿に失敗しました。\n投稿ID：${id}\n担当者：${obj['parson'] == '' ? '' : '<' + obj['parson'] + '>'}\nエラー内容：${e}`);
       return 1;
     }
   }
@@ -156,6 +174,7 @@ function tweetFromSpreadSheet() {
 
 // ツイート実行
 function toTweet(tweet_text, media_id_strings = [], test_flg = false) {
+  console.log(`toTweet\ntweet_text:${tweet_text}\ntest_flg${test_flg}`)
   let instance = twitterInstances['honban'];
   if (test_flg) {
     instance = twitterInstances['test'];
@@ -188,7 +207,7 @@ function getTweetRow(values, headArray) {
     if (a["id"] > b["id"]) return 1;
     return 0;
   });
-  //  console.log(`投稿優先度が1番高い行: ${objectToArray(sortedObjects[0])}`);
+  console.log(`投稿優先度が1番高い行: ${objectToArray(sortedObjects[0])}`);
 
   // 一番優先度の高い行を返す
   return sortedObjects[0];
@@ -213,7 +232,7 @@ function sheetUpdate(sheet, id, message = "", retry = false, error = false) {
   // J列に前回投稿日に現在時刻を反映
   if (!retry) {
     sheet.getRange(id + 3, last_tweet_time).setValue(now);
-    console.log(`投稿ID: ${id}の前回投稿日を更新しました。`);
+    console.log(`管理ID: ${id}の前回投稿日を更新しました。`);
   }
 }
 
@@ -232,7 +251,7 @@ function record(id) {
   const obj = getTweetRow(values.slice(2 + id, 3 + id), headArray);
 
   // 履歴書き出し
-  const array = [[obj["last_tweet_time"], obj["next_tweet_time"], id, obj["interval"], obj["tweet_text"] == '/rt']];
-  sheet2.getRange(sheet2.getLastRow() + 1, 1, 1, 5).setValues(array);
+  const array = [[obj["last_tweet_time"], obj["next_expected"], obj["next_tweet_time"], id, obj["interval"], obj["tweet_text"] == '/rt']];
+  sheet2.getRange(sheet2.getLastRow() + 1, 1, 1, 6).setValues(array);
 }
 

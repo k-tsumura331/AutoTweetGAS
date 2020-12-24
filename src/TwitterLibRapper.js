@@ -47,14 +47,14 @@ for (var i in accounts) {
 function getCallbackUrl() {
   for (let key in twitterInstances) {
     let instance = twitterInstances[key];
-    console.log(instance.getCallbackUrl());
+    console.log(`CallbackUrl:${instance.getCallbackUrl()}`);
   }
 }
 
 function authorize() {
   for (let key in twitterInstances) {
     instance = twitterInstances[key];
-    console.log(`${key}:`);
+    console.log(`key:${key}`);
     instance.authorize();
   }
 }
